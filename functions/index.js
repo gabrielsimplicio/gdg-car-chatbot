@@ -36,22 +36,11 @@ function searchCarHandler(app) {
           return;
       }
 
-  const message = "Foiiiiiii";
-
   if (hasScreen) {
-    // const list = app.buildList('Search result');
-    // cars.seller.map((seller, index) => {
-    //     return list.addItems(app.buildOptionItem(`/${car}/${year}/seller/${index}`)
-    //     .setTitle(`${carronome[car]} ${year} ${seller.name}`)
-    //     .setDescription(`${carronome[car]} \n ${seller.price} \n ${year} \n ${seller.name}`)
-    //     .setImage(seller.imgs[0], `${seller.name}'s car`))
-    // });
-    // app.askWithList('Okey, witch car do you like?',list);
-
     let richMessage = app
       .buildCarousel().addItems(
-        cars.seller.map(seller => {
-          return app
+        cars.seller.map((seller, index) => {
+            return app
             .buildOptionItem()
             .setImage(seller.imgs[0], `${seller.name}'s car`)
             .setTitle(`${carronome[car]} ${year} ${seller.name}`)
@@ -59,30 +48,38 @@ function searchCarHandler(app) {
             .setKey(`/${car}/${year}/seller/${index}`);
         }));
 
-        app.askWithCarousel('Which types do you like ?', richMessage);
+        app.askWithCarousel(app
+        .buildRichResponse()
+        .addSimpleResponse('Here the search result')
+        .addSuggestions(['show more', 'Back']), richMessage);
   } else {
-    app.tell(message);
+    app.tell(cars.seller.map((seller, index) => { return `${carronome[car]} \n ${seller.price} \n ${year} \n ${seller.name}` }));
   }
 });   
 }
 
-function optionIntent (app) {
-    console.log(app.getSelectedOption());
-    
+function optionIntent (app) {    
     const hasScreen = app.hasSurfaceCapability(
         app.SurfaceCapabilities.SCREEN_OUTPUT
       );
+      
+   db
+   .ref(`cars${app.getSelectedOption()}`)
+   .once('value')
+   .then(snapshot => {
+        const seller = snapshot.val();
 
-    if (hasScreen) {
-        let richMessage = app
-        .buildRichResponse()
-        .addSimpleResponse('What to do with the selected car?')
-        .addSuggestions(['Buy', 'Call', 'Back']);
+        console.log('seller', seller);
     
-        app.ask(richMessage);
-      } else {
-        app.ask('What to do with the selected car? Buy, Call, Back');
-      }
+        if (hasScreen) {
+            app.ask(app
+                .buildRichResponse()
+                .addSimpleResponse('The car was selected')
+                .addSuggestions(['Buy', 'Call', 'See photos', 'Back']));
+        } else {
+            app.ask('What to do with the selected car? Buy, Call, Back');
+        }
+    });    
   }
 
 exports.googleassistant = functions.https.onRequest((req, res) => {
